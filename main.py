@@ -1,8 +1,11 @@
 from typing import Optional
-from board import Board
+
+import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
+
+from board import Board
 
 app = FastAPI()
 board = Board(3)
@@ -38,3 +41,5 @@ def reset():
 
 app.mount("/", StaticFiles(directory="static"), name="static")
 
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8080)
