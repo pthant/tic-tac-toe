@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="reset.css">
+    <style>
+        * {
+            background-color: rgb(242, 235, 211);
+        }
+
+        #game {
+            position: absolute;
+            width: 608px;
+            height: 608px;
+            left: 50%;
+            top: 50%;
+            margin-left: -304px;
+            margin-top: -304px;
+
+            -webkit-user-select: none;
+            /* Safari */
+            user-select: none;
+        }
+
+        button {
+            position: relative;
+            width: 100%;
+            cursor: pointer;
+            border: none;
+            background-color: rgb(11, 11, 11, 0.5);
+            color: rgb(242, 235, 211);
+            margin-top: 8px;
+            padding: 8px;
+            font-size: 24px;
+        }
+
+        td {
+            width: 200px;
+            height: 200px;
+            border: 4px none rgba(11, 11, 11, 0.4);
+            font: 12em monospace;
+            text-align: center;
+        }
+
+        td.win {
+            transition: color 0.4s;
+            color: #14bdac;
+        }
+
+        .top>td {
+            border-bottom-style: solid;
+        }
+
+        .bottom>td {
+            border-top-style: solid;
+        }
+
+        td.left {
+            border-right-style: solid;
+        }
+
+        td.right {
+            border-left-style: solid;
+        }
+
+
+        @media (max-width: 960px),
+        (max-height: 960px) {
+            #game {
+                width: 366px;
+                height: 366px;
+                margin-left: -183px;
+                margin-top: -183px;
+            }
+
+            td {
+                width: 120px;
+                height: 120px;
+                border-width: 3px;
+                font: 8em monospace;
+            }
+        }
+    </style>
+    <script>
+        function findWinner(board) {
+            for (let i = 0; i < 3; i++) {
+                if (board[3 * i] !== "" && board[3 * i] === board[1 + 3 * i] && board[3 * i] === board[2 + 3 * i]) {
+                    return [3 * i, 1 + 3 * i, 2 + 3 * i]
+                }
+            }
+            for (let i = 0; i < 3; i++) {
+                if (board[i] !== "" && board[i] === board[3 + i] && board[i] === board[6 + i]) {
+                    return [i, 3 + i, 6 + i]
+                }
+            }
+            if (board[2] !== "" && board[2] === board[4] && board[2] === board[6]) {
+                return [2, 4, 6]
+            }
+            if (board[0] !== "" && board[0] === board[4] && board[0] === board[8]) {
+                return [0, 4, 8]
+            }
+        }
+
+        function isFull(board) {
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === "") {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        baseUrl = "http://127.0.0.1:8000"
+        document.addEventListener("DOMContentLoaded", async () => {
+            const cells = document.querySelectorAll("td");
+            // TODO(done): reset the board.
+            await fetch(`${baseUrl}/board:reset`, {
+                method: "POST"
+            });
+            let currentPlayer = "X";
+            cells.forEach(cell => cell.addEventListener("click", clickHandler));
+
+            async function clickHandler() {
+                // TODO(): setting a player to a given index
+                let idx = parseInt(this.id)
+                let row = Math.floor(idx / 3)
+                let col = idx % 3
+                let res = await fetch(`${baseUrl}/board:move`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        "row": row,
+                        "col": col,
+                        "player": currentPlayer
+                    })
+                }).then(res => res.json());
+                if (res["status"] != "Ok") {
+                    return
+                }
+                currentPlayer = currentPlayer === "X" ? "O" : "X"
+                // TODO(): get the whole board state
+                let board = await fetch(`${baseUrl}/board`).then(res => res.json());
+                board = [].concat(...board)
+                updateUi(cells, board)
+
+                // TODO(): check winner (maybe)
+                let winningTriplet = await fetch(`${baseUrl}/board:findwinner`).then(res => res.json());
+                if (winningTriplet.length !== 0) {
+                    let idx = winningTriplet[0][0]
+                    winningTriplet.forEach(pair => {
+                        idx = pair[0] * 3 + pair[1]
+                        cells[idx].classList.add("win")
+                    })
+                    cells.forEach(cell => cell.removeEventListener("click", clickHandler))
+                    // TODO(): check full (maybe)
+                } else if (isFull(board)) {
+                    console.log("draw")
+                    cells.forEach(cell => cell.removeEventListener("click", clickHandler))
+                }
+                this.removeEventListener("click", clickHandler)
+            }
+
+            function updateUi(cells, board) {
+                for (let i = 0; i < 9; i++) {
+                    cells[i].innerHTML = board[i]
+                }
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <div id="game">
+        <table>
+            <tr class="top">
+                <td id="0" class="left"></td>
+                <td id="1" class=""></td>
+                <td id="2" class="right"></td>
+            </tr>
+            <tr>
+                <td id="3" class="left"></td>
+                <td id="4" class=""></td>
+                <td id="5" class="right"></td>
+            </tr>
+            <tr class="bottom">
+                <td id="6" class="left"></td>
+                <td id="7" class=""></td>
+                <td id="8" class="right"></td>
+            </tr>
+        </table>
+        <button type="button" onclick="window.location.reload()">Reset</button>
+    </div>
+</body>
+
+</html>
